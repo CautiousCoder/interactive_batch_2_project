@@ -1,37 +1,34 @@
 <?php
 
-use App\Balance;
-use App\Helpers;
+use App\Connection;
 use App\Transactions;
-use App\User;
+use App\utilities\Dashboard;
+use App\utilities\Transaction;
 
 session_start();
-
 require_once "../vendor/autoload.php";
 
 // initialize
+$balance_transfer = [];
 $file_path = "../data/balance.txt";
-$current_balance = 0;
-
-// $data = Helpers::readFile($file_path);
-// $balance_transfer = read_file("../data/transactions.txt");
-// // extract data
-// if (!empty($data)) {
-//   foreach ($data as $value) {
-//     $line = explode("_", $value);
-//     if ($line[0] == $_SESSION["user"]["email"]) {
-//       $current_balance = (int) $line[1];
-//     }
-//   }
-// }
-
-$user = User::get($_SESSION["user"]["email"]);
-$user_id = $user["id"];
-$current_balance = Balance::get($user_id);
+$current_balance = $user_id = 0;
 
 
-// for transaction
-$balance_transfer = Transactions::getOwnedBy($_SESSION["user"]["email"]);
+if (Connection::isDB()) {
+  $user_id = Dashboard::getUserIdFromDB($_SESSION["user"]["email"]);
+  $current_balance = Dashboard::getBalanceFromDB($user_id);
+} else {
+  $current_balance = Dashboard::getBalanceFromFile($_SESSION["user"]["email"], $file_path);
+}
+
+
+if (Connection::isFile()) {
+  $balance_transfer = Transaction::getOwnTransactionFromFile($_SESSION["user"]["email"]);
+} elseif (Connection::isDB()) {
+  $balance_transfer = Transactions::getOwnedBy($_SESSION["user"]["email"]);
+} else {
+  die("Please, Set use_storage is \"isFile\" or \"isDatabase\" in your config.ini file");
+}
 
 // Log out 
 if (isset($_POST["logout"])) {
@@ -111,12 +108,20 @@ if (isset($_POST["logout"])) {
                     <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100">
                       <span class="font-medium leading-none text-emerald-700">
                         <?php
-                        if ($user && $user["lastname"] != "") {
-                          $str = $user["firstname"][0] . $user["lastname"][0];
-                          echo strtoupper($str);
+                        if (!empty($_SESSION["user"]) && $_SESSION["user"]["name"] != "") {
+                          try {
+                            $name = explode(" ", $_SESSION["user"]["name"]);
+                            $str = "";
+                            foreach ($name as $i) {
+                              $str .= $i[0];
+                            }
+                            echo strtoupper($str);
+                          } catch (\Throwable $th) {
+                            $str = $_SESSION["user"]["name"][0] . $_SESSION["user"]["name"][1];
+                            echo strtoupper($str);
+                          }
                         } else {
-                          $str = $user["firstname"][0] . $user["firstname"][1];
-                          echo strtoupper($str);
+                          echo "CU";
                         }
                         ?>
                       </span>

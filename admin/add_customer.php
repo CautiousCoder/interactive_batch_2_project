@@ -1,5 +1,6 @@
 <?php
 
+use App\Connection;
 use App\Helpers;
 use App\User;
 
@@ -12,13 +13,16 @@ if (isset($_POST["submit"])) {
   $lname = Helpers::inputValidate($_POST["last-name"]);
   $email = Helpers::inputValidate($_POST["email"]);
   $password = Helpers::inputValidate($_POST["password"]);
-  // $fullname = ucfirst($fname) . " " . ucfirst($lname);
-  // $str = $fullname . "_" . $email . "_" . $password . "\n";
-  // if (!empty($str)) {
-  //   Helpers::writeFile("../data/register_login_data.txt", $str);
-  //   header("location: customers.php");
-  // }
-  User::create(["firstname" => $fname, "lastname" => $lname, "email" => $email, "password" => $password]);
+
+  if (Connection::isFile()) {
+    User::createToFile(["firstname" => $fname, "lastname" => $lname, "email" => $email, "password" => $password]);
+    header("location: ./customers.php");
+  } elseif (Connection::isDB()) {
+    User::create(["firstname" => $fname, "lastname" => $lname, "email" => $email, "password" => $password]);
+    header("location: ./customers.php");
+  } else {
+    die("Please, Set use_storage is \"isFile\" or \"isDatabase\" in your config.ini file");
+  }
 }
 
 // Log out 

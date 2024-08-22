@@ -42,12 +42,12 @@ class Helpers
     // Read a file
     public static function readFile(string $file_path)
     {
+        $items = array_map("str_getcsv", file($file_path));
+        $header = array_shift($items);
         $data = [];
-        $open_file = fopen($file_path, "r") or die("Could not open the file.");
-        while (!feof($open_file)) {
-            array_push($data, fgets($open_file));
+        foreach ($items as $item) {
+            $data[] = array_combine($header, $item);
         }
-        fclose($open_file);
         return $data;
     }
 

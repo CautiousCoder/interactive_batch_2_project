@@ -7,7 +7,7 @@ use PDOException;
 
 class Transactions
 {
-    public static function create(array $sender, array $receiver, int $transfer_balance)
+    public static function create(int $id, string $name, string $email, int $current_balance, int $amount, string $receiver_email)
     {
         $conn = Connection::__self();
         try {
@@ -24,17 +24,11 @@ class Transactions
                 // echo "User Table created successfully.";
             }
 
-            $sender_id = $sender["id"];
-            $sender_name = $sender["name"];
-            $sender_email = $sender["email"];
-            $sender_amount = $sender["amount"];
-            $insert_sender_data = "INSERT INTO transactions (name, email, amount, transfer_type) VALUES ('{$sender_name}', '{$sender_email}', '{$transfer_balance}', 'sent')";
-
-            $receiver_id = $receiver["id"];
-            $receiver_name = $receiver["name"];
-            $receiver_email = $receiver["email"];
-            $receiver_amount = $receiver["amount"];
-            $insert_receiver_data = "INSERT INTO transactions (name, email, amount, transfer_type) VALUES ('{$receiver_name}', '{$receiver_email}', '{$transfer_balance}', 'received')";
+            $find_receiver = User::get($receiver_email);
+            $find_receiver_balance = Balance::get($find_receiver["id"]);
+            $receiver_name = $find_receiver["firstname"] . " " . $find_receiver["lastname"];
+            $insert_receiver_data = "INSERT INTO transactions (name, email, amount, transfer_type) VALUES ('{$receiver_name}', '{$find_receiver["email"]}', '{$amount}', 'received')";
+            $insert_sender_data = "INSERT INTO transactions (name, email, amount, transfer_type) VALUES ('{$name}', '{$email}', '{$amount}', 'sent')";
 
             $conn->exec($insert_sender_data);
             $conn->exec($insert_receiver_data);
@@ -43,14 +37,14 @@ class Transactions
             echo "New records created successfully";
 
             // balance update for sender
-            $sender_new_balance = $sender_amount - $transfer_balance;
-            Balance::update($sender_id, $sender_new_balance);
+            $sender_new_balance = $current_balance - $amount;
+            Balance::update($id, $sender_new_balance);
             // balance update for receiver
-            $receiver_new_balance = $receiver_amount + $transfer_balance;
-            if ($receiver_amount <= 0) {
-                Balance::add($receiver_new_balance, $receiver_id);
+            $receiver_new_balance = $find_receiver_balance + $amount;
+            if ($find_receiver_balance <= 0) {
+                Balance::add($receiver_new_balance, $find_receiver["id"]);
             } else {
-                Balance::update($receiver_id, $receiver_new_balance);
+                Balance::update($find_receiver["id"], $receiver_new_balance);
             }
 
         } catch (PDOException $e) {

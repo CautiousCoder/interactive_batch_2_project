@@ -1,59 +1,42 @@
 <?php
 
 use App\Balance;
-use App\Helpers;
+use App\Connection;
 use App\User;
+use App\utilities\Dashboard;
+use App\utilities\Withdraw;
 
 session_start();
-
 require_once "../vendor/autoload.php";
 
 // initialize
 $success_msg = $current_line = $error_msg = "";
 $file_path = "../data/balance.txt";
-$current_balance = 0;
+$current_balance = $user_id = 0;
 
-// $data = Helpers::readFile($file_path);
 
-// // extract data
-// if (!empty($data)) {
-//   foreach ($data as $value) {
-//     $line = explode("_", $value);
-//     if ($line[0] == $_SESSION["user"]["email"]) {
-//       $current_balance = (int) $line[1];
-//       $current_line = $value;
-//     }
-//   }
-// }
+if (Connection::isDB()) {
+  $user_id = Dashboard::getUserIdFromDB($_SESSION["user"]["email"]);
+  $current_balance = Dashboard::getBalanceFromDB($user_id);
+} else {
+  $current_balance = Dashboard::getBalanceFromFile($_SESSION["user"]["email"], $file_path);
+}
 
-$user = User::get($_SESSION["user"]["email"]);
-$user_id = $user["id"];
-$current_balance = Balance::get($user_id);
 
 if (isset($_POST["submit"])) {
   $amount = (int) $_POST["amount"];
   if (isset($_SESSION["user"]["email"])) {
-    // try {
-    //   // write data
-    //   $new_balance = $current_balance - $amount;
-    //   if ($new_balance < 0) {
-    //     $error_msg = " Insufficient Balance";
-    //   } else {
-    //     Helpers::removeLine($file_path, $current_line); // remove old line of file
-    //     $deposite = $_SESSION["user"]["email"] . "_" . $new_balance . "\n";
-    //     Helpers::writeFile($file_path, $deposite); // write update value
-    //     $current_balance = $new_balance;
-    //     $success_msg = " Balance Withdraw Successfully.";
-    //   }
-    // } catch (Exception $e) {
-    //   $error_msg = $e->getMessage();
-    // }
 
     if ($current_balance <= 0) {
       $error_msg = " Insufficient Balance";
     } else {
-      $total = $current_balance - $amount;
-      Balance::update($user_id, $total);
+      if (Connection::isFile()) {
+        Withdraw::getFromFile($_SESSION["user"]["email"], $amount, $current_balance, $file_path);
+      } elseif (Connection::isDB()) {
+        Withdraw::getFromDB($user_id, $amount, $current_balance);
+      } else {
+        die("Please, Set use_storage is \"isFile\" or \"isDatabase\" in your config.ini file");
+      }
       $success_msg = " Balance Withdraw Successfully.";
     }
   } else {
@@ -141,25 +124,21 @@ if (isset($_POST["logout"])) {
                     <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100">
                       <span class="font-medium leading-none text-emerald-700">
                         <?php
-                        // if (!empty($_SESSION["user"]) && $_SESSION["user"]["name"] != "") {
-                        //   $name = explode(" ", $_SESSION["user"]["name"]);
-                        //   $str = "";
-                        //   foreach ($name as $i) {
-                        //     $str .= $i[0];
-                        //   }
-                        //   echo strtoupper($str);
-                        // } else {
-                        //   echo "CU";
-                        // }
-                        
-                        if ($user && $user["lastname"] != "") {
-                          $str = $user["firstname"][0] . $user["lastname"][0];
-                          echo strtoupper($str);
+                        if (!empty($_SESSION["user"]) && $_SESSION["user"]["name"] != "") {
+                          try {
+                            $name = explode(" ", $_SESSION["user"]["name"]);
+                            $str = "";
+                            foreach ($name as $i) {
+                              $str .= $i[0];
+                            }
+                            echo strtoupper($str);
+                          } catch (\Throwable $th) {
+                            $str = $_SESSION["user"]["name"][0] . $_SESSION["user"]["name"][1];
+                            echo strtoupper($str);
+                          }
                         } else {
-                          $str = $user["firstname"][0] . $user["firstname"][1];
-                          echo strtoupper($str);
+                          echo "CU";
                         }
-
                         ?>
                       </span>
                     </span>

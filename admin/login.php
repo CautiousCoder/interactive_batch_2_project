@@ -1,11 +1,13 @@
 <?php
 
+use App\Connection;
 use App\Helpers;
-use App\User;
+use App\utilities\Login;
 
 session_start();
 require_once "../vendor/autoload.php";
 
+$login_file_path = "../data/register_login_data.txt";
 $error_msg = "";
 if (isset($_POST["submit"])) {
   $password = Helpers::inputValidate($_POST["password"]);
@@ -16,27 +18,14 @@ if (isset($_POST["submit"])) {
       header("location: ./customers.php");
     }
   } else {
-    // $u_data = Helpers::readFile("../data/register_login_data.txt");
-    // if (!empty($u_data)) {
-    //   foreach ($u_data as $user) {
-    //     $data = explode("_", $user);
-    //     if ($data[1] == $email && $data[2] == $password) {
-    //       $_SESSION["user"] = ["name" => $data[0], "email" => $data[1], "password" => $data[2]];
-    //       header("location: ./customers.php");
-    //     }
-    //   }
-    // }
-
-    $user = User::get($email);
-    if (!$user) {
-      $error_msg = "Please, Register an account.";
+    if (Connection::isFile()) {
+      Login::loginWithFile($email, $password, $login_file_path);
+      header("location: ./customers.php");
+    } elseif (Connection::isDB()) {
+      Login::loginWithDatabase($email, $password);
+      header("location: ./customers.php");
     } else {
-      if ($user["email"] == $email && $user["pass"] == $password) {
-        $name = $user["firstname"] . " " . $user["lastname"];
-        $_SESSION["user"] = ["name" => $name, "email" => $user["email"], "password" => $user["pass"]];
-        header("location: ./customers.php");
-      }
-      $error_msg = "Not match email and password.";
+      die("Please, Set use_storage is \"isFile\" or \"isDatabase\" in your config.ini file");
     }
   }
 

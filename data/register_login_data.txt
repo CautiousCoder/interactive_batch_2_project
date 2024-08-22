@@ -1,2 +1,4 @@
-Al Nahian_nahian@dot.com_1234
-Shamim Ahmed_samim@dot.com_1234
+firstname,lastname,email,password
+Al,nahian,nahian@dot.com,1234
+Test,Name,test@dot.com,1234
+Ahmed,Samim,samim@dot.com,1234

@@ -1,18 +1,21 @@
 <?php
 
-use App\Helpers;
+use App\Connection;
 use App\Transactions;
+use App\utilities\Transaction;
 
 session_start();
 require_once "../vendor/autoload.php";
 
+$balance_transfer = [];
 
-// $balance_transfer = Helpers::readFile("../data/transactions.txt");
-
-$balance_transfer = Transactions::getAll();
-// echo "<pre>";
-// print_r($balance_transfer);
-// echo "</pre>";
+if (Connection::isFile()) {
+  $balance_transfer = Transaction::getALLTransactionFromFile();
+} elseif (Connection::isDB()) {
+  $balance_transfer = Transactions::getAll();
+} else {
+  die("Please, Set use_storage is \"isFile\" or \"isDatabase\" in your config.ini file");
+}
 
 
 // Log out 

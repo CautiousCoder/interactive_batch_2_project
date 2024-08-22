@@ -1,30 +1,16 @@
 <?php
 
+use App\Connection;
 use App\Helpers;
 use App\User;
+use App\utilities\Register;
 
 session_start();
-
 require_once "./vendor/autoload.php";
 
 
-// if (isset(($_POST["submit"]))) {
-//   $name = Helpers::inputValidate($_POST["name"]);
-//   $email = Helpers::inputValidate($_POST["email"]);
-//   $password = Helpers::inputValidate($_POST["password"]);
-//   $str = $name . "_" . $email . "_" . $password . "\n";
-//   // var_dump($str);
-//   if (!empty($str)) {
-//     $_SESSION["user"] = ["name" => $name, "email" => $email, "password" => $password];
-//     // write user info to a file
-//     // $user_file = fopen("./data/register_login_data.txt", "a") or die("Could not oper the file.");
-//     // fwrite($user_file, $str);
-//     // fclose($user_file);
-//     Helpers::writeFile("./data/register_login_data.txt", $str);
-//     header("location: login.php");
-//   }
-// }
 $error_msg = "";
+$login_file_path = "./data/register_login_data.txt";
 if (isset($_POST["submit"])) {
   $name = Helpers::inputValidate($_POST["name"]);
   $email = Helpers::inputValidate($_POST["email"]);
@@ -39,12 +25,14 @@ if (isset($_POST["submit"])) {
     $lname = "";
   }
 
-  if (!User::get($email)) {
-    User::create(["firstname" => $fname, "lastname" => $lname, "email" => $email, "password" => $password]);
-    header("location: login.php");
+  if (Connection::isFile()) {
+    Register::registerWithFile($fname, $lname, $email, $password, $login_file_path);
+  } elseif (Connection::isDB()) {
+    Register::registerWithDatabase($fname, $lname, $email, $password);
   } else {
-    $error_msg = "User Already Exists.";
+    die("Please, Set use_storage is \"isFile\" or \"isDatabase\" in your config.ini file");
   }
+
 }
 ?>
 

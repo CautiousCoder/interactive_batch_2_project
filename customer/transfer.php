@@ -1,95 +1,66 @@
 <?php
 
-use App\Balance;
+use App\Connection;
 use App\Helpers;
 use App\Transactions;
-use App\User;
+use App\utilities\Dashboard;
+use App\utilities\Transaction;
 
 session_start();
-
 require_once "../vendor/autoload.php";
+
 // initialize
 $success_msg = $current_line = $error_msg = "";
 $file_path = "../data/balance.txt";
-$current_balance = 0;
+$current_balance = $user_id = 0;
 
-// $data = Helpers::readFile($file_path);
-
-// // extract data
-// if (!empty($data)) {
-//   foreach ($data as $value) {
-//     $line = explode("_", $value);
-//     if ($line[0] == $_SESSION["user"]["email"]) {
-//       $current_balance = (int) $line[1];
-//       $current_line = $value;
-//     }
-//   }
-// }
-
-
-$user = User::get($_SESSION["user"]["email"]);
-$user_id = $user["id"];
-$current_balance = Balance::get($user_id);
+if (Connection::isDB()) {
+  $user_id = Dashboard::getUserIdFromDB($_SESSION["user"]["email"]);
+  $current_balance = Dashboard::getBalanceFromDB($user_id);
+} else {
+  $current_balance = Dashboard::getBalanceFromFile($_SESSION["user"]["email"], $file_path);
+}
 
 if (isset($_POST["proceed"])) {
   $email = Helpers::inputValidate($_POST["email"]);
   $amount = (int) $_POST["amount"];
-  // $new_balance = $current_balance - $amount;
-  // $found_user = false;
-  // if (isset($_SESSION["user"]["email"])) {
-  //   if ($new_balance > 0) {
-  //     $receiver_info = Helpers::readFile("../data/register_login_data.txt");
-  //     if (!empty($receiver_info)) {
-  //       foreach ($receiver_info as $value) {
-  //         $line = explode("_", $value);
-  //         if ($line[1] == $email) {
-  //           $found_user = true;
-  //         }
-  //       }
-  //     }
-  //     if ($found_user) {
-  //       try {
-  //         $now = new DateTime('now');
-  //         $now->setTimeZone(new DateTimeZone("Asia/Dhaka"));
-  //         Helpers::transferBalance($file_path, $current_balance, $email, $amount, $now->format("d M Y, H:i A"));
-  //         $success_msg = " Transfer Balance successfully";
-  //         header("location: dashboard.php");
-  //       } catch (Exception $e) {
-  //         echo $e->getMessage();
-  //       }
-  //     } else {
-  //       $error_msg = " No User Found by register this email.";
-  //       die($error_msg);
-  //     }
-  //   } else {
-  //     $error_msg = " Insufficient Balance.";
-  //     die($error_msg);
-  //   }
-  // } else {
-  //   $error_msg = " Oops! Please, Longin.";
-  //   die($error_msg);
-  // }
+  $new_balance = $current_balance - $amount;
+  $found_user = false;
+  if (isset($_SESSION["user"]["email"])) {
+    if ($new_balance > 0) {
+      $receiver_info = Helpers::readFile("../data/register_login_data.txt");
+      foreach ($receiver_info as $value) {
+        if ($value["email"] == $email) {
+          $found_user = true;
+        }
+      }
+      if ($found_user) {
+        try {
+          if (Connection::isFile()) {
+            Transaction::addToFile($_SESSION["user"]["name"], $_SESSION["user"]["email"], $current_balance, $amount, $email);
+          } elseif (Connection::isDB()) {
+            Transactions::create($user_id, $_SESSION["user"]["name"], $_SESSION["user"]["email"], $current_balance, $amount, $email);
+          } else {
+            die("Please, Set use_storage is \"isFile\" or \"isDatabase\" in your config.ini file");
+          }
 
-  $find_sender = User::get($email);
-  if (!$find_sender) {
-    $error_msg = " Oops! Invalid Receiver Email Address.";
+          $success_msg = " Transfer Balance successfully";
+          header("location: dashboard.php");
+        } catch (Exception $e) {
+          echo $e->getMessage();
+        }
+      } else {
+        $error_msg = " No User Found by register this email.";
+        die($error_msg);
+      }
+    } else {
+      $error_msg = " Insufficient Balance.";
+      die($error_msg);
+    }
+  } else {
+    $error_msg = " Oops! Please, Longin.";
     die($error_msg);
   }
-  $find_sender_balance = Balance::get($find_sender["id"]);
-  $receiver = [];
-  $receiver["id"] = $find_sender["id"];
-  $receiver["name"] = $find_sender["firstname"] . " " . $find_sender["lastname"];
-  $receiver["email"] = $find_sender["email"];
-  $receiver["amount"] = $find_sender_balance;
-
-  // for receiver
-  $sender = [];
-  $sender["id"] = $user["id"];
-  $sender["name"] = $user["firstname"] . " " . $user["lastname"];
-  $sender["email"] = $user["email"];
-  $sender["amount"] = $current_balance;
-
-  Transactions::create($sender, $receiver, $amount);
 }
 
 // Log out 
@@ -170,23 +141,20 @@ if (isset($_POST["logout"])) {
                     <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100">
                       <span class="font-medium leading-none text-emerald-700">
                         <?php
-                        // if (!empty($_SESSION["user"]) && $_SESSION["user"]["name"] != "") {
-                        //   $name = explode(" ", $_SESSION["user"]["name"]);
-                        //   $str = "";
-                        //   foreach ($name as $i) {
-                        //     $str .= $i[0];
-                        //   }
-                        //   echo strtoupper($str);
-                        // } else {
-                        //   echo "CU";
-                        // }
-                        
-                        if ($user && $user["lastname"] != "") {
-                          $str = $user["firstname"][0] . $user["lastname"][0];
-                          echo strtoupper($str);
+                        if (!empty($_SESSION["user"]) && $_SESSION["user"]["name"] != "") {
+                          try {
+                            $name = explode(" ", $_SESSION["user"]["name"]);
+                            $str = "";
+                            foreach ($name as $i) {
+                              $str .= $i[0];
+                            }
+                            echo strtoupper($str);
+                          } catch (\Throwable $th) {
+                            $str = $_SESSION["user"]["name"][0] . $_SESSION["user"]["name"][1];
+                            echo strtoupper($str);
+                          }
                         } else {
-                          $str = $user["firstname"][0] . $user["firstname"][1];
-                          echo strtoupper($str);
+                          echo "CU";
                         }
                         ?>
                       </span>

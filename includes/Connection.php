@@ -1,29 +1,25 @@
 <?php
+
 namespace App;
 
 use PDO;
 use PDOException;
-// $db_name = "mysql:host=localhost;dbname=bangubank;";
-// $user_name = "root";
-// $password = "";
-
-// $conn = new PDO($db_name, $user_name, $password);
-
 
 // use singleton pattern
 class Connection
 {
 
     private $conn;
-    private function __construct()
-    {
-    }
+    public $config;
 
     public static function __self()
     {
-        $db_name = "mysql:host=localhost;dbname=bangubank;";
-        $user_name = "root";
-        $password = "";
+        // $config = parse_ini_file("../config.ini");
+        $dhost = Config::DB_HOST();
+        $dname = Config::DB_NAME();
+        $db_name = "mysql:host={$dhost};dbname={$dname};";
+        $user_name = Config::DB_USERNAME();
+        $password = Config::DB_PASSWORD();
         if (!isset($conn)) {
             try {
                 $conn = new PDO($db_name, $user_name, $password);
@@ -35,4 +31,17 @@ class Connection
         }
         return $conn;
     }
+
+    public static function isFile(): bool
+    {
+        // $config = parse_ini_file("../config.ini");
+        return Config::USE_STORAGE() === "isFile";
+    }
+
+    public static function isDB(): bool
+    {
+        // $config = parse_ini_file("../config.ini");
+        return Config::USE_STORAGE() === "isDatabase";
+    }
+
 }

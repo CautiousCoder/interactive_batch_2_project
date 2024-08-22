@@ -1,14 +1,19 @@
 <?php
 
-use App\Helpers;
+use App\Connection;
 use App\User;
 
 session_start();
-
 require_once "../vendor/autoload.php";
 
-// $user_list = Helpers::readFile("../data/register_login_data.txt");
-$user_list = User::getAll();
+$user_list = [];
+if (Connection::isFile()) {
+  $user_list = User::getAllFromFile();
+} elseif (Connection::isDB()) {
+  $user_list = User::getAll();
+} else {
+  die("Please, Set use_storage is \"isFile\" or \"isDatabase\" in your config.ini file");
+}
 
 // Log out 
 if (isset($_POST["logout"])) {

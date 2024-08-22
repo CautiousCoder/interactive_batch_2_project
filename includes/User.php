@@ -65,5 +65,23 @@ class User
             die("Oops! Something is Wrong, could not find user. Exception Message -> " . $e->getMessage());
         }
     }
+
+
+    // from file
+
+    public static function createToFile(array $data)
+    {
+        $file_path = "../data/register_login_data.txt";
+
+        $statement = $data["firstname"] . "," . $data["lastname"] . "," . $data["email"] . "," . $data["password"] . "\n";
+        Helpers::writeFile($file_path, $statement);
+    }
+    public static function getAllFromFile()
+    {
+        $users = Helpers::readFile("../data/register_login_data.txt");
+        return $users;
+    }
+
 }
+
 

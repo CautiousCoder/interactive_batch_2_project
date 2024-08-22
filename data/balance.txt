@@ -1,2 +1,3 @@
-samim@dot.com_120
-nahian@dot.com_100
+email,amount
+test@dot.com,50
+nahian@dot.com,50
