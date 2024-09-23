@@ -3,7 +3,7 @@
 
   <x-slot:main_content>
 
-    <form class="space-y-6" action="{{ route('user.store') }}" method="POST">
+    <form class="space-y-6" action="{{ route('user.update') }}" method="POST">
       @csrf
       @method('put')
       <div class="space-y-12">

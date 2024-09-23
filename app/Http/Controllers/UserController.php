@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
@@ -10,17 +11,17 @@ class UserController extends Controller
 {
     //
     public function index(){
-        $user = DB::table('users')->where('email', session()->get('email'))->first();
+        $user = DB::table('users')->where('id', Auth::id())->first();
         return view('profile', compact('user'));
     }
 
     public function edit(){
-        $user = DB::table('users')->where('email', session()->get('email'))->first();
+        $user = DB::table('users')->where('id', Auth::id())->first();
         return view('edit', compact('user'));
     }
 
 
-    public function store(Request $request) {
+    public function update(Request $request) {
         $validated = $request->validate([
             'fname' => 'required|string|max:255|min:5',
             'lname' => 'string|max:50',
@@ -29,9 +30,9 @@ class UserController extends Controller
             'password' => 'required|max:16|min:6',
         ]);
         $password = array_pop($validated);
-        $user = DB::table('users')->where('email', session()->get('email'))->update([
+        $user = DB::table('users')->where('id', Auth::id())->update([
             ...$validated,
-            'password' => $password,
+            'password' => Hash::make($password),
         ]);
 
         if ($user>0) {

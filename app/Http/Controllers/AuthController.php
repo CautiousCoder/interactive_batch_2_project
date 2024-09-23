@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
@@ -28,19 +29,6 @@ class AuthController extends Controller
             'password' => 'required|max:16|min:6'
         ]);
 
-        // try {
-        //     $name = explode(" ", $validated['name']);
-        //     if (count($name)> 1) {
-        //         $lname = array_pop($name);
-        //     }else{
-        //         $lname = '';
-        //     }
-            
-        //     $fname = implode(" ", $name);
-        // } catch (\Throwable $th) {
-        //     $fname = $validated['name'];
-        //     $lname = '';
-        // }
         $password = array_pop($validated);
         $name = explode(" ", $validated['name']);
             if (count($name)> 1) {
@@ -57,14 +45,13 @@ class AuthController extends Controller
             'lname' => $lname,
             'username' => $validated['username'],
             'email' => $validated['email'],
-            'password' => $validated['password'],
+            'password' => Hash::make($password),
             'bio' => 'Less Talk, More Code 💻',
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
         if ($user) {
-            $request->session()->put('email', $validated['email']);
             return to_route('home');
         }else {
             return back();
@@ -80,17 +67,14 @@ class AuthController extends Controller
             'password' => 'required|max:16|min:6'
         ]);
 
-        $user = DB::table('users')
-        ->where('email',$validated['email'])
-        ->where('password', $validated['password'])->first();
-
-        if ($user != null) {
-            $request->session()->put('email', $validated['email']);
-            return to_route('home');
-        }else{
-            return back()->with('error_msg', 'Email and Password Not Match.');
+        if(Auth::attempt($validated)){
+            $request->session()->regenerate();
+ 
+            return redirect()->intended('/');
         }
-        
+        return back()->withErrors([
+            'email' => 'The provided credentials do not match our records.',
+        ])->onlyInput('email');
     }
 
 }
